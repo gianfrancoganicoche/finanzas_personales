@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import {
   Plus, X, Pencil, Check, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  ArrowUp, ArrowDown, Minus, ListChecks, BarChart3, TrendingUp, CreditCard,
+  ArrowUp, ArrowDown, Minus, ListChecks, BarChart3, TrendingUp, CreditCard, Receipt,
 } from "lucide-react";
 
 // ---------- almacenamiento: funciona en el artifact (window.storage) y deployado (localStorage) ----------
@@ -121,23 +121,27 @@ export default function App() {
   const [concepts, setConcepts] = useState(DEFAULT_CONCEPTS);
   const [entries, setEntries] = useState(DEFAULT_ENTRIES);
   const [cardTxns, setCardTxns] = useState([]);
+  const [oneOffs, setOneOffs] = useState([]);
   const [rules, setRules] = useState(DEFAULT_RULES);
   const [month, setMonth] = useState(monthKeyNow());
   const [editingConcepts, setEditingConcepts] = useState(false);
+  const [showFab, setShowFab] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [c, e, t, r] = await Promise.all([
+        const [c, e, t, r, o] = await Promise.all([
           storageAdapter.get("cdg_concepts"),
           storageAdapter.get("cdg_entries"),
           storageAdapter.get("cdg_cardtxns"),
           storageAdapter.get("cdg_rules"),
+          storageAdapter.get("cdg_oneoffs"),
         ]);
         if (c) setConcepts(JSON.parse(c));
         if (e) setEntries(JSON.parse(e));
         if (t) setCardTxns(JSON.parse(t));
         if (r) setRules(JSON.parse(r));
+        if (o) setOneOffs(JSON.parse(o));
       } catch (err) {
         console.error(err);
       } finally {
@@ -150,6 +154,7 @@ export default function App() {
   useEffect(() => { if (loaded) storageAdapter.set("cdg_entries", JSON.stringify(entries)); }, [entries, loaded]);
   useEffect(() => { if (loaded) storageAdapter.set("cdg_cardtxns", JSON.stringify(cardTxns)); }, [cardTxns, loaded]);
   useEffect(() => { if (loaded) storageAdapter.set("cdg_rules", JSON.stringify(rules)); }, [rules, loaded]);
+  useEffect(() => { if (loaded) storageAdapter.set("cdg_oneoffs", JSON.stringify(oneOffs)); }, [oneOffs, loaded]);
 
   const entryFor = useCallback(
     (conceptId) => entries.find((e) => e.conceptId === conceptId && e.month === month),
@@ -180,6 +185,21 @@ export default function App() {
     setConcepts((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: field === "defaultAmount" ? Number(value) || 0 : value } : c)));
   }
 
+  function addOneOff(description, amount, date) {
+    if (!description.trim() || !amount) return;
+    setOneOffs((prev) => [...prev, { id: nextId(), month, description: description.trim(), amount: Number(amount), date: date || "" }]);
+  }
+  function removeOneOff(id) {
+    setOneOffs((prev) => prev.filter((o) => o.id !== id));
+  }
+  function addConceptAndMarkPaid(name, amount) {
+    if (!name.trim()) return;
+    const id = nextId();
+    const amt = Number(amount) || 0;
+    setConcepts((prev) => [...prev, { id, name: name.trim(), defaultAmount: amt }]);
+    setEntries((prev) => [...prev, { id: nextId(), conceptId: id, month, amount: amt }]);
+  }
+
   function addCardTxn(card, description, amount, category) {
     if (!description.trim() || !amount) return;
     setCardTxns((prev) => [...prev, { id: nextId(), card, month, description: description.trim(), amount: Number(amount), category }]);
@@ -195,6 +215,8 @@ export default function App() {
   const fijosPresupuestado = concepts.reduce((a, c) => a + (c.defaultAmount || 0), 0);
   const countPagados = concepts.filter((c) => entryFor(c.id)).length;
   const cardTotalMes = cardTxns.filter((t) => t.month === month).reduce((a, t) => a + t.amount, 0);
+  const oneOffsMes = oneOffs.filter((o) => o.month === month);
+  const oneOffsTotalMes = oneOffsMes.reduce((a, o) => a + o.amount, 0);
 
   const HEADER_H = 96;
   const SUMMARY_H = 148;
@@ -218,6 +240,7 @@ export default function App() {
             <FijosSummaryBar
               countPagados={countPagados} totalConceptos={concepts.length}
               fijosTotal={fijosTotal} fijosPresupuestado={fijosPresupuestado} cardTotalMes={cardTotalMes}
+              oneOffsTotalMes={oneOffsTotalMes}
             />
           </div>
         </div>
@@ -229,6 +252,7 @@ export default function App() {
             concepts={concepts} entryFor={entryFor} toggleConcept={toggleConcept} updateAmount={updateAmount}
             editingConcepts={editingConcepts} setEditingConcepts={setEditingConcepts}
             addConcept={addConcept} removeConcept={removeConcept} updateConcept={updateConcept}
+            oneOffsMes={oneOffsMes} removeOneOff={removeOneOff}
           />
         )}
         {tab === "tarjetas" && (
@@ -244,6 +268,28 @@ export default function App() {
           <EvolucionTab concepts={concepts} entries={entries} cardTxns={cardTxns} />
         )}
       </main>
+
+      {tab === "mes" && (
+        <button
+          onClick={() => setShowFab(true)}
+          style={{
+            position: "fixed", right: 18, bottom: "calc(84px + env(safe-area-inset-bottom))", zIndex: 25,
+            width: 56, height: 56, borderRadius: "50%", background: ACCENT, border: "none",
+            color: "#fff", boxShadow: "0 4px 12px rgba(74,85,201,0.4)", display: "flex",
+            alignItems: "center", justifyContent: "center", cursor: "pointer",
+          }}
+        >
+          <Plus size={26} />
+        </button>
+      )}
+
+      {showFab && (
+        <AddExpenseModal
+          onClose={() => setShowFab(false)}
+          onAddFijo={(name, amount) => { addConceptAndMarkPaid(name, amount); setShowFab(false); }}
+          onAddOneOff={(desc, amount, date) => { addOneOff(desc, amount, date); setShowFab(false); }}
+        />
+      )}
 
       <nav style={{
         position: "fixed", bottom: 0, left: 0, right: 0, background: SURFACE, borderTop: `1px solid ${LINE_C}`,
@@ -274,7 +320,7 @@ export default function App() {
   );
 }
 
-function FijosSummaryBar({ countPagados, totalConceptos, fijosTotal, fijosPresupuestado, cardTotalMes }) {
+function FijosSummaryBar({ countPagados, totalConceptos, fijosTotal, fijosPresupuestado, cardTotalMes, oneOffsTotalMes }) {
   const pendiente = fijosPresupuestado - fijosTotal;
   return (
     <div style={cardStyle}>
@@ -292,6 +338,73 @@ function FijosSummaryBar({ countPagados, totalConceptos, fijosTotal, fijosPresup
         <span>Gastado en tarjeta este mes</span>
         <span style={{ color: TEXT, fontWeight: 600 }}>{money(cardTotalMes)}</span>
       </div>
+      <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED }}>
+        <span>Gastos no fijos este mes</span>
+        <span style={{ color: TEXT, fontWeight: 600 }}>{money(oneOffsTotalMes)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ================= MODAL: nuevo gasto (fijo o no fijo) =================
+function AddExpenseModal({ onClose, onAddFijo, onAddOneOff }) {
+  const [choice, setChoice] = useState(null); // 'fijo' | 'nofijo' | null
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState("");
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, background: "rgba(20,20,26,0.45)", zIndex: 30, display: "flex", alignItems: "flex-end" }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: SURFACE, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: "20px 18px calc(24px + env(safe-area-inset-bottom))", width: "100%", maxWidth: 560, margin: "0 auto" }}
+      >
+        {!choice && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, textAlign: "center" }}>Nuevo gasto</div>
+            <button onClick={() => setChoice("fijo")} style={{ ...choiceBtn, marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Fijo</div>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>Se repite todos los meses (alquiler, servicios…)</div>
+            </button>
+            <button onClick={() => setChoice("nofijo")} style={choiceBtn}>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>No fijo</div>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>Gasto puntual de este mes (garantía, mudanza…)</div>
+            </button>
+          </>
+        )}
+
+        {choice === "fijo" && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Nuevo fijo</div>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre (ej: IM Tributos)" style={{ ...inputSm, width: "100%", marginBottom: 8, boxSizing: "border-box" }} />
+            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto" style={{ ...inputSm, width: "100%", marginBottom: 14, boxSizing: "border-box" }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setChoice(null)} style={{ ...editBtn, flex: 1 }}>Atrás</button>
+              <button onClick={() => onAddFijo(name, amount)} style={{ ...iconBtnFilled, flex: 1, justifyContent: "center", padding: "11px" }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Agregar y marcar pagado</span>
+              </button>
+            </div>
+          </>
+        )}
+
+        {choice === "nofijo" && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Gasto no fijo</div>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Descripción (ej: Garantía apto nuevo)" style={{ ...inputSm, width: "100%", marginBottom: 8, boxSizing: "border-box" }} />
+            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto" style={{ ...inputSm, width: "100%", marginBottom: 8, boxSizing: "border-box" }} />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ ...inputSm, width: "100%", marginBottom: 14, boxSizing: "border-box" }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setChoice(null)} style={{ ...editBtn, flex: 1 }}>Atrás</button>
+              <button onClick={() => onAddOneOff(name, amount, date)} style={{ ...iconBtnFilled, flex: 1, justifyContent: "center", padding: "11px" }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Agregar</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -300,8 +413,11 @@ function FijosSummaryBar({ countPagados, totalConceptos, fijosTotal, fijosPresup
 function MesTab({
   concepts, entryFor, toggleConcept, updateAmount,
   editingConcepts, setEditingConcepts, addConcept, removeConcept, updateConcept,
+  oneOffsMes, removeOneOff,
 }) {
   const [newName, setNewName] = useState("");
+  const [editingAmountId, setEditingAmountId] = useState(null);
+  const oneOffsTotal = oneOffsMes.reduce((a, o) => a + o.amount, 0);
 
   return (
     <div>
@@ -309,6 +425,7 @@ function MesTab({
         {concepts.map((c) => {
           const entry = entryFor(c.id);
           const checked = !!entry;
+          const isEditingAmount = editingAmountId === c.id;
           return (
             <div key={c.id} style={{ background: SURFACE, padding: "13px 14px", display: "flex", alignItems: "center", gap: 12 }}>
               <button onClick={() => toggleConcept(c)} style={{ ...circleBtn, borderColor: checked ? GOOD : "#d5d6dc", background: checked ? GOOD : "transparent" }}>
@@ -326,12 +443,20 @@ function MesTab({
                     {c.name}
                   </div>
                   {checked ? (
-                    <input
-                      type="number"
-                      value={entry.amount}
-                      onChange={(e) => updateAmount(c, e.target.value)}
-                      style={{ width: 78, border: "none", background: "transparent", fontFamily: FONT_UI, fontSize: 14, textAlign: "right", color: MUTED, fontWeight: 500 }}
-                    />
+                    isEditingAmount ? (
+                      <input
+                        type="number"
+                        autoFocus
+                        defaultValue={entry.amount}
+                        onBlur={(e) => { updateAmount(c, e.target.value); setEditingAmountId(null); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+                        style={{ width: 84, border: `1px solid ${LINE_C}`, borderRadius: 6, padding: "4px 6px", fontFamily: FONT_UI, fontSize: 14, textAlign: "right" }}
+                      />
+                    ) : (
+                      <button onClick={() => setEditingAmountId(c.id)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: GOOD }}>{money(entry.amount)}</span>
+                      </button>
+                    )
                   ) : (
                     <div style={{ fontSize: 14, color: MUTED }}>{money(c.defaultAmount)}</div>
                   )}
@@ -352,6 +477,34 @@ function MesTab({
       <button onClick={() => setEditingConcepts((v) => !v)} style={editBtn}>
         <Pencil size={13} /> {editingConcepts ? "Listo" : "Editar fijos"}
       </button>
+
+      <div style={{ marginTop: 22, marginBottom: 8 }}>
+        <SectionTitle>Gastos no fijos</SectionTitle>
+      </div>
+      {oneOffsMes.length === 0 ? (
+        <div style={{ ...cardStyle, textAlign: "center", color: MUTED, fontSize: 13, padding: "20px 14px" }}>
+          Nada puntual cargado este mes. Usá el botón + para agregar (garantía, mudanza, mesoterapia…).
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 1, background: LINE_C, borderRadius: 10, overflow: "hidden" }}>
+          {oneOffsMes.map((o) => (
+            <div key={o.id} style={{ background: SURFACE, padding: "11px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 13.5 }}>{o.description}</div>
+                {o.date && <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{o.date}</div>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: GOOD }}>{money(o.amount)}</span>
+                <button onClick={() => removeOneOff(o.id)} style={iconBtn}><X size={14} color={MUTED} /></button>
+              </div>
+            </div>
+          ))}
+          <div style={{ background: SURFACE, padding: "10px 14px", display: "flex", justifyContent: "space-between", borderTop: `2px solid ${LINE_C}` }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Total no fijos</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{money(oneOffsTotal)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -716,3 +869,4 @@ const inputSm = { border: `1px solid ${LINE_C}`, borderRadius: 6, padding: "8px 
 const editBtn = { width: "100%", padding: "11px", background: SURFACE, border: `1px solid ${LINE_C}`, borderRadius: 8, fontSize: 13, fontFamily: FONT_UI, color: TEXT, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontWeight: 500 };
 const chip = { display: "inline-flex", alignItems: "center", padding: "6px 11px", border: "1px solid", borderRadius: 16, fontSize: 12, fontWeight: 500 };
 const cardStyle = { background: SURFACE, border: `1px solid ${LINE_C}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 };
+const choiceBtn = { width: "100%", textAlign: "left", padding: "14px 16px", background: BG, border: `1px solid ${LINE_C}`, borderRadius: 10, cursor: "pointer", fontFamily: FONT_UI, color: TEXT };
