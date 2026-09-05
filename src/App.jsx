@@ -199,8 +199,8 @@ export default function App() {
   if (!loaded) return <div style={shellLoading}>Cargando…</div>;
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, fontFamily: FONT_UI, color: TEXT, paddingBottom: 74 }}>
-      <header style={{ background: HEADER, color: "#fff", padding: "18px 16px" }}>
+    <div style={{ minHeight: "100vh", background: BG, fontFamily: FONT_UI, color: TEXT, paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
+      <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 20, background: HEADER, color: "#fff", padding: "18px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
         <div style={{ fontSize: 18, fontWeight: 600, textAlign: "center", letterSpacing: 0.2 }}>Control de gastos</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
           <button onClick={() => setMonth((m) => shiftMonth(m, -1))} style={navBtn}><ChevronLeft size={18} /></button>
@@ -209,7 +209,7 @@ export default function App() {
         </div>
       </header>
 
-      <main style={{ padding: 16, maxWidth: 560, margin: "0 auto" }}>
+      <main style={{ padding: 16, paddingTop: "calc(96px + 16px)", maxWidth: 560, margin: "0 auto" }}>
         {tab === "mes" && (
           <MesTab
             concepts={concepts} entryFor={entryFor} toggleConcept={toggleConcept} updateAmount={updateAmount}
@@ -233,7 +233,11 @@ export default function App() {
         )}
       </main>
 
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: SURFACE, borderTop: `1px solid ${LINE_C}`, display: "flex", boxShadow: "0 -2px 8px rgba(0,0,0,0.03)" }}>
+      <nav style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, background: SURFACE, borderTop: `1px solid ${LINE_C}`,
+        display: "flex", boxShadow: "0 -2px 8px rgba(0,0,0,0.05)",
+        paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 20,
+      }}>
         {[
           { id: "mes", label: "Fijos", icon: ListChecks },
           { id: "tarjetas", label: "Tarjetas", icon: CreditCard },
@@ -244,12 +248,12 @@ export default function App() {
             key={id}
             onClick={() => setTab(id)}
             style={{
-              flex: 1, padding: "10px 4px", border: "none", background: "transparent",
+              flex: 1, padding: "12px 4px 4px", border: "none", background: "transparent",
               color: tab === id ? ACCENT : MUTED, fontFamily: FONT_UI,
-              fontSize: 11, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer",
+              fontSize: 11, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer",
             }}
           >
-            <Icon size={18} strokeWidth={tab === id ? 2.4 : 1.8} />
+            <Icon size={19} strokeWidth={tab === id ? 2.4 : 1.8} />
             {label}
           </button>
         ))}
