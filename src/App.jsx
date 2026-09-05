@@ -25,16 +25,18 @@ const storageAdapter = {
   },
 };
 
-// ---------- constantes visuales ----------
-const INK = "#1c2b3a";
-const PAPER = "#f6f3ec";
-const LINE_C = "#ded8c8";
-const RUST = "#b3543f";
-const TEAL = "#3f7d6d";
-const AMBER = "#b8862f";
-const MUTED = "#6b6558";
-const TEXT = "#2a2a28";
-const PALETTE = ["#3f7d6d", "#b3543f", "#4a6fa5", "#b8862f", "#7a5c8e", "#5f8a3f", "#a34d6e", "#3f8a8a"];
+// ---------- constantes visuales (paleta pastel) ----------
+const INK = "#7d8cae";       // header: azul pastel apagado
+const PAPER = "#faf8f6";     // fondo general
+const LINE_C = "#e7e1e8";    // bordes suaves
+const RUST = "#e29a9a";      // negativo / por encima del presupuesto
+const TEAL = "#95c9ac";      // positivo / al día
+const AMBER = "#e9c896";
+const MUTED = "#9b94a3";
+const TEXT = "#4e4a57";
+const PALETTE = ["#95c9ac", "#e29a9a", "#a9c0e4", "#e9c896", "#c6a9db", "#a9dbc6", "#e4a9c0", "#a9d3db"];
+
+const FONT_UI = "'Roboto', -apple-system, sans-serif";
 
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const MESES_CORTO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -72,11 +74,42 @@ const DEFAULT_CONCEPTS = [
   { id: "c6", name: "Ancel", type: "fijo", defaultAmount: 625 },
   { id: "c7", name: "Fondo de Solidaridad", type: "fijo", defaultAmount: 1059 },
   { id: "c8", name: "Psicóloga", type: "fijo", defaultAmount: 3000 },
-  { id: "c9", name: "Club (Nacional)", type: "fijo", defaultAmount: 1112 },
+  { id: "c10", name: "Tarjeta Santander", type: "fijo", defaultAmount: 23352 },
+  { id: "c11", name: "Tarjeta CDLC", type: "fijo", defaultAmount: 6573 },
   { id: "v1", name: "Nafta", type: "variable" },
   { id: "v2", name: "Delivery", type: "variable" },
   { id: "v3", name: "Supermercado", type: "variable" },
   { id: "v4", name: "Bares/Restoranes", type: "variable" },
+];
+
+// ---------- datos de agosto 2026, ya cargados con lo que confirmamos en la conversación ----------
+const DEFAULT_ENTRIES = [
+  // fijos de agosto
+  { id: "seed1", conceptId: "c1", month: "2026-08", amount: 24837.90, paid: true },
+  { id: "seed2", conceptId: "c2", month: "2026-08", amount: 4783.00, paid: true },
+  { id: "seed3", conceptId: "c3", month: "2026-08", amount: 13167.36, paid: true },
+  { id: "seed4", conceptId: "c4", month: "2026-08", amount: 2705.05, paid: true },
+  { id: "seed5", conceptId: "c5", month: "2026-08", amount: 1701.64, paid: true },
+  { id: "seed6", conceptId: "c6", month: "2026-08", amount: 624.59, paid: true },
+  { id: "seed7", conceptId: "c7", month: "2026-08", amount: 1059.00, paid: true },
+  { id: "seed8", conceptId: "c8", month: "2026-08", amount: 3000.00, paid: true },
+  { id: "seed9", conceptId: "c10", month: "2026-08", amount: 23351.84, paid: true },
+  { id: "seed10", conceptId: "c11", month: "2026-08", amount: 6573.00, paid: true },
+  // supermercado
+  { id: "seed11", conceptId: "v3", month: "2026-08", amount: 283.28, date: "2026-08-27", note: "Tienda Inglesa" },
+  { id: "seed12", conceptId: "v3", month: "2026-08", amount: 690.48, date: "2026-08-20", note: "Geant" },
+  { id: "seed13", conceptId: "v3", month: "2026-08", amount: 470.95, date: "2026-08-17", note: "Tienda Inglesa" },
+  { id: "seed14", conceptId: "v3", month: "2026-08", amount: 1274.40, date: "2026-08-17", note: "Macromercado" },
+  { id: "seed15", conceptId: "v3", month: "2026-08", amount: 59.02, date: "2026-08-12", note: "Tienda Inglesa" },
+  { id: "seed16", conceptId: "v3", month: "2026-08", amount: 188.92, date: "2026-08-03", note: "Macromercado" },
+  { id: "seed17", conceptId: "v3", month: "2026-08", amount: 419.00, date: "2026-08-18", note: "Tienda Inglesa (tarjeta)" },
+  // bares/restoranes
+  { id: "seed18", conceptId: "v4", month: "2026-08", amount: 305.00, date: "2026-08-21", note: "Carmesi" },
+  { id: "seed19", conceptId: "v4", month: "2026-08", amount: 200.00, date: "2026-08-19", note: "Carmesi" },
+  { id: "seed20", conceptId: "v4", month: "2026-08", amount: 370.49, date: "2026-08-17", note: "Jackson Bar" },
+  { id: "seed21", conceptId: "v4", month: "2026-08", amount: 1118.85, date: "2026-08-15", note: "Jackson Bar (tarjeta)" },
+  // delivery
+  { id: "seed22", conceptId: "v2", month: "2026-08", amount: 727.09, date: "2026-08-08", note: "Empanadas Calentitas" },
 ];
 
 let uid = 1;
@@ -86,9 +119,20 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("mes");
   const [concepts, setConcepts] = useState(DEFAULT_CONCEPTS);
-  const [entries, setEntries] = useState([]); // {id, conceptId, month, amount, date, paid}
+  const [entries, setEntries] = useState(DEFAULT_ENTRIES);
   const [month, setMonth] = useState(monthKeyNow());
   const [editingConcepts, setEditingConcepts] = useState(false);
+
+  useEffect(() => {
+    const id = "roboto-font-link";
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap";
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -178,10 +222,10 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: PAPER, fontFamily: "'Iowan Old Style', Georgia, serif", color: TEXT, paddingBottom: 70 }}>
+    <div style={{ minHeight: "100vh", background: PAPER, fontFamily: FONT_UI, color: TEXT, paddingBottom: 70 }}>
       <header style={{ background: INK, color: "#f0ece0", padding: "18px 16px" }}>
         <div style={{ fontSize: 19, fontWeight: 600 }}>Libro de gastos</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, fontFamily: "system-ui, sans-serif" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, fontFamily: FONT_UI }}>
           <button onClick={() => setMonth((m) => shiftMonth(m, -1))} style={navBtn}><ChevronLeft size={18} /></button>
           <div style={{ fontSize: 15 }}>{monthLabel(month)}</div>
           <button onClick={() => setMonth((m) => shiftMonth(m, 1))} style={navBtn}><ChevronRight size={18} /></button>
@@ -219,7 +263,7 @@ export default function App() {
             onClick={() => setTab(id)}
             style={{
               flex: 1, padding: "10px 4px", border: "none", background: "transparent",
-              color: tab === id ? INK : MUTED, fontFamily: "system-ui, sans-serif",
+              color: tab === id ? INK : MUTED, fontFamily: FONT_UI,
               fontSize: 11, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer",
             }}
           >
@@ -243,7 +287,7 @@ function MesTab({
 
   return (
     <div>
-      <div style={{ background: "#fff", border: `1px solid ${LINE_C}`, borderRadius: 8, padding: "14px 16px", marginBottom: 16, fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ background: "#fff", border: `1px solid ${LINE_C}`, borderRadius: 8, padding: "14px 16px", marginBottom: 16, fontFamily: FONT_UI }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 6 }}>
           <span>{countFijosPagados} de {fijos.length} fijos pagados</span>
           <span>{money(fijosTotalMes)} / {money(fijosPresupuestado)}</span>
@@ -256,7 +300,7 @@ function MesTab({
         </div>
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${LINE_C}`, display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED }}>
           <span>Total del mes (fijos + variables)</span>
-          <span style={{ fontFamily: "ui-monospace, monospace", color: TEXT, fontWeight: 600 }}>{money(totalMes)}</span>
+          <span style={{ fontFamily: FONT_UI, color: TEXT, fontWeight: 600 }}>{money(totalMes)}</span>
         </div>
       </div>
 
@@ -273,12 +317,12 @@ function MesTab({
               {editingConcepts ? (
                 <>
                   <input value={c.name} onChange={(e) => updateConcept(c.id, "name", e.target.value)} style={inputSm} />
-                  <input type="number" value={c.defaultAmount} onChange={(e) => updateConcept(c.id, "defaultAmount", e.target.value)} style={{ ...inputSm, width: 80, textAlign: "right", fontFamily: "ui-monospace, monospace" }} />
+                  <input type="number" value={c.defaultAmount} onChange={(e) => updateConcept(c.id, "defaultAmount", e.target.value)} style={{ ...inputSm, width: 80, textAlign: "right", fontFamily: FONT_UI }} />
                   <button onClick={() => removeConcept(c.id)} style={iconBtn}><X size={16} color={MUTED} /></button>
                 </>
               ) : (
                 <>
-                  <div style={{ flex: 1, fontFamily: "system-ui, sans-serif", fontSize: 14, textDecoration: checked ? "line-through" : "none", color: checked ? MUTED : TEXT }}>
+                  <div style={{ flex: 1, fontFamily: FONT_UI, fontSize: 14, textDecoration: checked ? "line-through" : "none", color: checked ? MUTED : TEXT }}>
                     {c.name}
                   </div>
                   {checked ? (
@@ -286,10 +330,10 @@ function MesTab({
                       type="number"
                       value={entry.amount}
                       onChange={(e) => updateFijoAmount(c, e.target.value)}
-                      style={{ width: 76, border: "none", background: "transparent", fontFamily: "ui-monospace, monospace", fontSize: 13, textAlign: "right", color: MUTED }}
+                      style={{ width: 76, border: "none", background: "transparent", fontFamily: FONT_UI, fontSize: 13, textAlign: "right", color: MUTED }}
                     />
                   ) : (
-                    <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: MUTED }}>{money(c.defaultAmount)}</div>
+                    <div style={{ fontFamily: FONT_UI, fontSize: 13, color: MUTED }}>{money(c.defaultAmount)}</div>
                   )}
                 </>
               )}
@@ -308,22 +352,22 @@ function MesTab({
             <div key={c.id} style={{ background: "#fff", border: `1px solid ${LINE_C}`, borderRadius: 8, overflow: "hidden" }}>
               <button
                 onClick={() => setExpandedVar(isOpen ? null : c.id)}
-                style={{ width: "100%", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "none", background: "transparent", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}
+                style={{ width: "100%", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "none", background: "transparent", cursor: "pointer", fontFamily: FONT_UI }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {isOpen ? <ChevronUp size={15} color={MUTED} /> : <ChevronDown size={15} color={MUTED} />}
                   <span style={{ fontSize: 14, color: TEXT }}>{c.name}</span>
                   <span style={{ fontSize: 11, color: MUTED }}>({items.length})</span>
                 </div>
-                <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 14, fontWeight: 600 }}>{money(subtotal)}</span>
+                <span style={{ fontFamily: FONT_UI, fontSize: 14, fontWeight: 600 }}>{money(subtotal)}</span>
               </button>
               {isOpen && (
                 <div style={{ borderTop: `1px solid ${LINE_C}`, padding: "8px 14px 12px" }}>
                   {items.map((e) => (
-                    <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontFamily: "system-ui, sans-serif", fontSize: 13 }}>
+                    <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontFamily: FONT_UI, fontSize: 13 }}>
                       <span style={{ color: MUTED }}>{e.date || "—"} {e.note && `· ${e.note}`}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontFamily: "ui-monospace, monospace" }}>{money(e.amount)}</span>
+                        <span style={{ fontFamily: FONT_UI }}>{money(e.amount)}</span>
                         <button onClick={() => removeEntry(e.id)} style={iconBtn}><X size={13} color={MUTED} /></button>
                       </div>
                     </div>
@@ -404,31 +448,31 @@ function ResumenTab({ concepts, entries, month }) {
 
   return (
     <div>
-      <div style={{ fontFamily: "system-ui, sans-serif", fontSize: 13, color: MUTED, marginBottom: 12 }}>
+      <div style={{ fontFamily: FONT_UI, fontSize: 13, color: MUTED, marginBottom: 12 }}>
         Comparando {monthLabel(month)} contra {monthLabel(prevMonth)}
       </div>
 
       <div style={{ background: INK, borderRadius: 8, padding: "16px 18px", marginBottom: 16, color: "#f0ece0" }}>
-        <div style={{ fontFamily: "system-ui, sans-serif", fontSize: 12, color: "#b9c2cc" }}>Total del mes</div>
-        <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 24, marginTop: 2 }}>{money(totalActual)}</div>
+        <div style={{ fontFamily: FONT_UI, fontSize: 12, color: "#b9c2cc" }}>Total del mes</div>
+        <div style={{ fontFamily: FONT_UI, fontSize: 24, marginTop: 2 }}>{money(totalActual)}</div>
         <DeltaTag delta={totalActual - totalAnterior} anterior={totalAnterior} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 1, background: LINE_C, borderRadius: 8, overflow: "hidden" }}>
         {rows.sort((a, b) => b.actual - a.actual).map((r) => (
           <div key={r.id} style={{ background: "#fff", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontFamily: "system-ui, sans-serif", fontSize: 13 }}>
+            <div style={{ fontFamily: FONT_UI, fontSize: 13 }}>
               {r.name}
               <span style={{ fontSize: 10, color: MUTED, marginLeft: 6 }}>{r.type === "fijo" ? "fijo" : "variable"}</span>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}>{money(r.actual)}</div>
+              <div style={{ fontFamily: FONT_UI, fontSize: 13 }}>{money(r.actual)}</div>
               <DeltaTag delta={r.delta} anterior={r.anterior} small />
             </div>
           </div>
         ))}
         {rows.length === 0 && (
-          <div style={{ background: "#fff", padding: "30px 14px", textAlign: "center", color: MUTED, fontFamily: "system-ui, sans-serif", fontSize: 13 }}>
+          <div style={{ background: "#fff", padding: "30px 14px", textAlign: "center", color: MUTED, fontFamily: FONT_UI, fontSize: 13 }}>
             Sin movimientos cargados este mes.
           </div>
         )}
@@ -445,7 +489,7 @@ function DeltaTag({ delta, anterior, small }) {
   const color = flat ? MUTED : up ? RUST : TEAL;
   const Icon = flat ? Minus : up ? ArrowUp : ArrowDown;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: small ? "flex-end" : "flex-start", fontFamily: "system-ui, sans-serif", fontSize: small ? 10 : 12, color: small ? color : "#dcd6c6", marginTop: small ? 1 : 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: small ? "flex-end" : "flex-start", fontFamily: FONT_UI, fontSize: small ? 10 : 12, color: small ? color : "#dcd6c6", marginTop: small ? 1 : 6 }}>
       <Icon size={small ? 10 : 13} color={color} />
       <span style={{ color }}>{money(Math.abs(delta))}{pct !== null && ` (${pct > 0 ? "+" : ""}${pct}%)`}</span>
     </div>
@@ -489,7 +533,7 @@ function EvolucionTab({ concepts, entries }) {
 
   if (monthKeys.length < 2) {
     return (
-      <div style={{ textAlign: "center", color: MUTED, fontFamily: "system-ui, sans-serif", fontSize: 14, padding: "40px 20px" }}>
+      <div style={{ textAlign: "center", color: MUTED, fontFamily: FONT_UI, fontSize: 14, padding: "40px 20px" }}>
         Necesitás al menos 2 meses cargados para ver la evolución. Seguí registrando y volvé por acá.
       </div>
     );
@@ -502,9 +546,9 @@ function EvolucionTab({ concepts, entries }) {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ left: 4, right: 12, top: 8, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={LINE_C} />
-            <XAxis dataKey="mes" tick={{ fontSize: 10, fontFamily: "system-ui, sans-serif" }} />
-            <YAxis tick={{ fontSize: 10, fontFamily: "system-ui, sans-serif" }} width={50} />
-            <Tooltip formatter={(v) => money(v)} contentStyle={{ fontFamily: "system-ui, sans-serif", fontSize: 12 }} />
+            <XAxis dataKey="mes" tick={{ fontSize: 10, fontFamily: FONT_UI }} />
+            <YAxis tick={{ fontSize: 10, fontFamily: FONT_UI }} width={50} />
+            <Tooltip formatter={(v) => money(v)} contentStyle={{ fontFamily: FONT_UI, fontSize: 12 }} />
             <Line type="monotone" dataKey="__total" name="Total" stroke={INK} strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
@@ -532,10 +576,10 @@ function EvolucionTab({ concepts, entries }) {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ left: 4, right: 12, top: 8, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={LINE_C} />
-            <XAxis dataKey="mes" tick={{ fontSize: 10, fontFamily: "system-ui, sans-serif" }} />
-            <YAxis tick={{ fontSize: 10, fontFamily: "system-ui, sans-serif" }} width={50} />
-            <Tooltip formatter={(v) => money(v)} contentStyle={{ fontFamily: "system-ui, sans-serif", fontSize: 12 }} />
-            <Legend wrapperStyle={{ fontSize: 11, fontFamily: "system-ui, sans-serif" }} />
+            <XAxis dataKey="mes" tick={{ fontSize: 10, fontFamily: FONT_UI }} />
+            <YAxis tick={{ fontSize: 10, fontFamily: FONT_UI }} width={50} />
+            <Tooltip formatter={(v) => money(v)} contentStyle={{ fontFamily: FONT_UI, fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 11, fontFamily: FONT_UI }} />
             {conceptsWithData.map((c, i) => (
               selected.includes(c.id) && (
                 <Line key={c.id} type="monotone" dataKey={c.name} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={{ r: 2.5 }} />
@@ -550,14 +594,14 @@ function EvolucionTab({ concepts, entries }) {
 
 // ---------- piezas compartidas ----------
 function SectionTitle({ children }) {
-  return <div style={{ fontFamily: "system-ui, sans-serif", fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontFamily: FONT_UI, fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>{children}</div>;
 }
 
-const shellLoading = { minHeight: "100vh", background: PAPER, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia, serif", color: MUTED };
+const shellLoading = { minHeight: "100vh", background: PAPER, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_UI, color: MUTED };
 const navBtn = { border: "none", background: "rgba(255,255,255,0.1)", borderRadius: 6, padding: 6, color: "#f0ece0", cursor: "pointer", display: "flex" };
 const iconBtn = { border: "none", background: "transparent", cursor: "pointer", padding: 4, display: "flex", alignItems: "center" };
 const iconBtnFilled = { border: "none", background: INK, borderRadius: 6, cursor: "pointer", padding: "7px 9px", display: "flex", alignItems: "center" };
 const circleBtn = { width: 24, height: 24, borderRadius: "50%", border: "2px solid", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
-const inputSm = { border: `1px solid ${LINE_C}`, borderRadius: 4, padding: "6px 8px", fontSize: 13, fontFamily: "system-ui, sans-serif" };
-const editBtn = { width: "100%", padding: "10px", background: "transparent", border: `1px solid ${LINE_C}`, borderRadius: 6, fontSize: 13, fontFamily: "system-ui, sans-serif", color: TEXT, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" };
-const chip = { display: "inline-flex", alignItems: "center", padding: "5px 10px", border: "1px solid", borderRadius: 14, fontSize: 12, fontFamily: "system-ui, sans-serif" };
+const inputSm = { border: `1px solid ${LINE_C}`, borderRadius: 4, padding: "6px 8px", fontSize: 13, fontFamily: FONT_UI };
+const editBtn = { width: "100%", padding: "10px", background: "transparent", border: `1px solid ${LINE_C}`, borderRadius: 6, fontSize: 13, fontFamily: FONT_UI, color: TEXT, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" };
+const chip = { display: "inline-flex", alignItems: "center", padding: "5px 10px", border: "1px solid", borderRadius: 14, fontSize: 12, fontFamily: FONT_UI };
