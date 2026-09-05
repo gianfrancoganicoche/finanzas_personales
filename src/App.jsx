@@ -76,6 +76,7 @@ const DEFAULT_CONCEPTS = [
   { id: "c6", name: "Ancel", defaultAmount: 625 },
   { id: "c7", name: "Fondo de Solidaridad", defaultAmount: 1059 },
   { id: "c8", name: "Psicóloga", defaultAmount: 3000 },
+  { id: "c9", name: "Tributos domiciliarios (IM, bimestral)", defaultAmount: 623 },
   { id: "c10", name: "Tarjeta Santander (pago)", defaultAmount: 23352 },
   { id: "c11", name: "Tarjeta CDLC (pago)", defaultAmount: 6573 },
 ];
@@ -172,6 +173,10 @@ export default function App() {
     const existing = entryFor(concept.id);
     if (existing) setEntries((prev) => prev.map((e) => (e.id === existing.id ? { ...e, amount: Number(amount) || 0 } : e)));
   }
+  function restoreDefaults() {
+    setConcepts(DEFAULT_CONCEPTS);
+  }
+
   function addConcept(name) {
     if (!name.trim()) return;
     setConcepts((prev) => [...prev, { id: nextId(), name: name.trim(), defaultAmount: 0 }]);
@@ -245,6 +250,7 @@ export default function App() {
           <MesTab
             concepts={concepts} entryFor={entryFor} toggleConcept={toggleConcept} updateAmount={updateAmount}
             addConcept={addConcept} removeConcept={removeConcept} updateConcept={updateConcept}
+            restoreDefaults={restoreDefaults}
           />
         )}
         {tab === "tarjetas" && (
@@ -430,9 +436,20 @@ function AddExpenseModal({ onClose, onAddFijo, onAddOneOff }) {
 
 // ================= FIJOS =================
 function MesTab({
-  concepts, entryFor, toggleConcept, updateAmount, addConcept, removeConcept, updateConcept,
+  concepts, entryFor, toggleConcept, updateAmount, addConcept, removeConcept, updateConcept, restoreDefaults,
 }) {
   const [editingField, setEditingField] = useState(null); // `${conceptId}:name` | `${conceptId}:amount`
+
+  if (concepts.length === 0) {
+    return (
+      <div style={{ ...cardStyle, textAlign: "center", padding: "28px 18px" }}>
+        <div style={{ fontSize: 14, color: MUTED, marginBottom: 14 }}>No tenés fijos cargados.</div>
+        <button onClick={restoreDefaults} style={{ ...iconBtnFilled, width: "100%", justifyContent: "center", padding: "11px" }}>
+          <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Restaurar fijos por defecto</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
