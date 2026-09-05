@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
@@ -215,29 +215,11 @@ export default function App() {
   const countPagados = concepts.filter((c) => entryFor(c.id)).length;
   const oneOffsMes = oneOffs.filter((o) => o.month === month);
 
-  const headerRef = useRef(null);
-  const summaryRef = useRef(null);
-  const [topOffset, setTopOffset] = useState(112);
-
-  useEffect(() => {
-    const update = () => {
-      const h = headerRef.current?.offsetHeight || 0;
-      const s = tab === "mes" ? (summaryRef.current?.offsetHeight || 0) : 0;
-      setTopOffset(h + s + (tab === "mes" ? 12 : 16));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    if (headerRef.current) ro.observe(headerRef.current);
-    if (summaryRef.current) ro.observe(summaryRef.current);
-    window.addEventListener("resize", update);
-    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
-  }, [tab]);
-
   if (!loaded) return <div style={shellLoading}>Cargando…</div>;
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, fontFamily: FONT_UI, color: TEXT, paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
-      <header ref={headerRef} style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 20, background: HEADER, color: "#fff", padding: "16px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", background: BG, fontFamily: FONT_UI, color: TEXT, overflow: "hidden" }}>
+      <header style={{ flexShrink: 0, background: HEADER, color: "#fff", padding: "16px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", paddingTop: "calc(16px + env(safe-area-inset-top))" }}>
         <div style={{ fontSize: 18, fontWeight: 600, textAlign: "center", letterSpacing: 0.2 }}>Control de gastos</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
           <button onClick={() => setMonth((m) => shiftMonth(m, -1))} style={navBtn}><ChevronLeft size={18} /></button>
@@ -247,7 +229,7 @@ export default function App() {
       </header>
 
       {tab === "mes" && (
-        <div ref={summaryRef} style={{ position: "fixed", top: headerRef.current?.offsetHeight || 92, left: 0, right: 0, zIndex: 15, background: BG, padding: "10px 16px 8px", boxShadow: "0 4px 6px -4px rgba(0,0,0,0.06)" }}>
+        <div style={{ flexShrink: 0, background: BG, padding: "10px 16px 8px", boxShadow: "0 4px 6px -4px rgba(0,0,0,0.06)" }}>
           <div style={{ maxWidth: 560, margin: "0 auto" }}>
             <FijosSummaryBar
               countPagados={countPagados} totalConceptos={concepts.length}
@@ -258,7 +240,7 @@ export default function App() {
         </div>
       )}
 
-      <main style={{ padding: 16, paddingTop: `${topOffset}px`, maxWidth: 560, margin: "0 auto" }}>
+      <main style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: 16, maxWidth: 560, width: "100%", margin: "0 auto", boxSizing: "border-box", position: "relative" }}>
         {tab === "mes" && (
           <MesTab
             concepts={concepts} entryFor={entryFor} toggleConcept={toggleConcept} updateAmount={updateAmount}
@@ -277,21 +259,21 @@ export default function App() {
         {tab === "evolucion" && (
           <EvolucionTab concepts={concepts} entries={entries} cardTxns={cardTxns} />
         )}
-      </main>
 
-      {tab === "mes" && (
-        <button
-          onClick={() => setShowFab(true)}
-          style={{
-            position: "fixed", right: 18, bottom: "calc(84px + env(safe-area-inset-bottom))", zIndex: 25,
-            width: 56, height: 56, borderRadius: "50%", background: ACCENT, border: "none",
-            color: "#fff", boxShadow: "0 4px 12px rgba(74,85,201,0.4)", display: "flex",
-            alignItems: "center", justifyContent: "center", cursor: "pointer",
-          }}
-        >
-          <Plus size={26} />
-        </button>
-      )}
+        {tab === "mes" && (
+          <button
+            onClick={() => setShowFab(true)}
+            style={{
+              position: "fixed", right: 18, bottom: "calc(78px + env(safe-area-inset-bottom))", zIndex: 25,
+              width: 56, height: 56, borderRadius: "50%", background: ACCENT, border: "none",
+              color: "#fff", boxShadow: "0 4px 12px rgba(74,85,201,0.4)", display: "flex",
+              alignItems: "center", justifyContent: "center", cursor: "pointer",
+            }}
+          >
+            <Plus size={26} />
+          </button>
+        )}
+      </main>
 
       {showFab && (
         <AddExpenseModal
@@ -302,9 +284,9 @@ export default function App() {
       )}
 
       <nav style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, background: SURFACE, borderTop: `1px solid ${LINE_C}`,
+        flexShrink: 0, background: SURFACE, borderTop: `1px solid ${LINE_C}`,
         display: "flex", boxShadow: "0 -2px 8px rgba(0,0,0,0.05)",
-        paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 20,
+        paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
       }}>
         {[
           { id: "mes", label: "Fijos", icon: ListChecks },
