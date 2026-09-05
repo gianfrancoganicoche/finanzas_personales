@@ -196,6 +196,9 @@ export default function App() {
   const countPagados = concepts.filter((c) => entryFor(c.id)).length;
   const cardTotalMes = cardTxns.filter((t) => t.month === month).reduce((a, t) => a + t.amount, 0);
 
+  const HEADER_H = 96;
+  const SUMMARY_H = 148;
+
   if (!loaded) return <div style={shellLoading}>Cargando…</div>;
 
   return (
@@ -209,12 +212,21 @@ export default function App() {
         </div>
       </header>
 
-      <main style={{ padding: 16, paddingTop: "calc(96px + 16px)", maxWidth: 560, margin: "0 auto" }}>
+      {tab === "mes" && (
+        <div style={{ position: "fixed", top: HEADER_H, left: 0, right: 0, zIndex: 15, background: BG, padding: "12px 16px 8px", boxShadow: "0 4px 6px -4px rgba(0,0,0,0.06)" }}>
+          <div style={{ maxWidth: 560, margin: "0 auto" }}>
+            <FijosSummaryBar
+              countPagados={countPagados} totalConceptos={concepts.length}
+              fijosTotal={fijosTotal} fijosPresupuestado={fijosPresupuestado} cardTotalMes={cardTotalMes}
+            />
+          </div>
+        </div>
+      )}
+
+      <main style={{ padding: 16, paddingTop: tab === "mes" ? `${HEADER_H + SUMMARY_H + 12}px` : `${HEADER_H + 16}px`, maxWidth: 560, margin: "0 auto" }}>
         {tab === "mes" && (
           <MesTab
             concepts={concepts} entryFor={entryFor} toggleConcept={toggleConcept} updateAmount={updateAmount}
-            fijosTotal={fijosTotal} fijosPresupuestado={fijosPresupuestado} countPagados={countPagados}
-            cardTotalMes={cardTotalMes}
             editingConcepts={editingConcepts} setEditingConcepts={setEditingConcepts}
             addConcept={addConcept} removeConcept={removeConcept} updateConcept={updateConcept}
           />
@@ -262,33 +274,37 @@ export default function App() {
   );
 }
 
+function FijosSummaryBar({ countPagados, totalConceptos, fijosTotal, fijosPresupuestado, cardTotalMes }) {
+  const pendiente = fijosPresupuestado - fijosTotal;
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 8 }}>
+        <span>{countPagados} de {totalConceptos} pagados</span>
+        <span>{money(fijosTotal)} / {money(fijosPresupuestado)}</span>
+      </div>
+      <div style={{ height: 8, background: LINE_C, borderRadius: 4, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${fijosPresupuestado ? Math.min(100, (fijosTotal / fijosPresupuestado) * 100) : 0}%`, background: ACCENT, transition: "width .2s" }} />
+      </div>
+      <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: pendiente > 0 ? BAD : GOOD }}>
+        {pendiente > 0 ? `Faltan ${money(pendiente)}` : "Todo pagado ✓"}
+      </div>
+      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${LINE_C}`, display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED }}>
+        <span>Gastado en tarjeta este mes</span>
+        <span style={{ color: TEXT, fontWeight: 600 }}>{money(cardTotalMes)}</span>
+      </div>
+    </div>
+  );
+}
+
 // ================= FIJOS =================
 function MesTab({
-  concepts, entryFor, toggleConcept, updateAmount, fijosTotal, fijosPresupuestado, countPagados, cardTotalMes,
+  concepts, entryFor, toggleConcept, updateAmount,
   editingConcepts, setEditingConcepts, addConcept, removeConcept, updateConcept,
 }) {
   const [newName, setNewName] = useState("");
-  const pendiente = fijosPresupuestado - fijosTotal;
 
   return (
     <div>
-      <div style={cardStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 8 }}>
-          <span>{countPagados} de {concepts.length} pagados</span>
-          <span>{money(fijosTotal)} / {money(fijosPresupuestado)}</span>
-        </div>
-        <div style={{ height: 8, background: LINE_C, borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${fijosPresupuestado ? Math.min(100, (fijosTotal / fijosPresupuestado) * 100) : 0}%`, background: ACCENT, transition: "width .2s" }} />
-        </div>
-        <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: pendiente > 0 ? BAD : GOOD }}>
-          {pendiente > 0 ? `Faltan ${money(pendiente)}` : "Todo pagado ✓"}
-        </div>
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${LINE_C}`, display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED }}>
-          <span>Gastado en tarjeta este mes</span>
-          <span style={{ color: TEXT, fontWeight: 600 }}>{money(cardTotalMes)}</span>
-        </div>
-      </div>
-
       <div style={{ display: "flex", flexDirection: "column", gap: 1, background: LINE_C, borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
         {concepts.map((c) => {
           const entry = entryFor(c.id);
